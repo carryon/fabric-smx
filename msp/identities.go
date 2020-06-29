@@ -9,19 +9,18 @@ package msp
 import (
 	"crypto"
 	"crypto/rand"
-	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"sync"
-	"time"
-
 	"github.com/golang/protobuf/proto"
 	"github.com/hyperledger/fabric-protos-go/msp"
 	"github.com/hyperledger/fabric/bccsp"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 	"go.uber.org/zap/zapcore"
+	"sync"
+	"time"
 )
 
 var mspIdentityLogger = flogging.MustGetLogger("msp.identity")
@@ -31,7 +30,8 @@ type identity struct {
 	id *IdentityIdentifier
 
 	// cert contains the x.509 certificate that signs the public key of this instance
-	cert *x509.Certificate
+	cert *sm2.Certificate
+	//cert *x509.Certificate
 
 	// this is the public key of this instance
 	pk bccsp.Key
@@ -52,7 +52,8 @@ type identity struct {
 	validationErr error
 }
 
-func newIdentity(cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (Identity, error) {
+func newIdentity(cert *sm2.Certificate, pk bccsp.Key, msp *bccspmsp) (Identity, error) {
+//func newIdentity(cert *x509.Certificate, pk bccsp.Key, msp *bccspmsp) (Identity, error) {
 	if mspIdentityLogger.IsEnabledFor(zapcore.DebugLevel) {
 		mspIdentityLogger.Debugf("Creating identity instance for cert %s", certToPEM(cert))
 	}
@@ -218,11 +219,15 @@ func (id *identity) Serialize() ([]byte, error) {
 func (id *identity) getHashOpt(hashFamily string) (bccsp.HashOpts, error) {
 	switch hashFamily {
 	case bccsp.SHA2:
+		mspIdentityLogger.Debug("++++++++++getHashOpt got SHA2.")
 		return bccsp.GetHashOpt(bccsp.SHA256)
 	case bccsp.SHA3:
 		return bccsp.GetHashOpt(bccsp.SHA3_256)
+	case bccsp.GMSM3:
+		mspIdentityLogger.Debug("++++++++++getHashOpt got GMSM3.")
+		return bccsp.GetHashOpt(bccsp.GMSM3)
 	}
-	return nil, errors.Errorf("hash familiy not recognized [%s]", hashFamily)
+	return nil, errors.Errorf("hash family not recognized [%s]", hashFamily)
 }
 
 type signingidentity struct {
@@ -233,7 +238,8 @@ type signingidentity struct {
 	signer crypto.Signer
 }
 
-func newSigningIdentity(cert *x509.Certificate, pk bccsp.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
+func newSigningIdentity(cert *sm2.Certificate, pk bccsp.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
+//func newSigningIdentity(cert *x509.Certificate, pk bccsp.Key, signer crypto.Signer, msp *bccspmsp) (SigningIdentity, error) {
 	//mspIdentityLogger.Infof("Creating signing identity instance for ID %s", id)
 	mspId, err := newIdentity(cert, pk, msp)
 	if err != nil {

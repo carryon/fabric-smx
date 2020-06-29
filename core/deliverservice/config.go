@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 package deliverservice
 
 import (
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"io/ioutil"
 	"time"
 
@@ -72,7 +72,8 @@ func LoadOverridesMap() (map[string]*orderers.Endpoint, error) {
 
 	overrideMap := map[string]*orderers.Endpoint{}
 	for _, override := range overrides {
-		certPool := x509.NewCertPool()
+		certPool := sm2.NewCertPool()
+		//certPool := x509.NewCertPool()
 		if override.CACertsFile != "" {
 			pem, err := ioutil.ReadFile(override.CACertsFile)
 			if err != nil {

@@ -8,9 +8,9 @@ package deliverservice
 
 import (
 	"context"
-	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/tjfoc/gmsm/sm2"
 	"sync"
 	"time"
 
@@ -91,7 +91,8 @@ type DialerAdapter struct {
 	Client *comm.GRPCClient
 }
 
-func (da DialerAdapter) Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error) {
+func (da DialerAdapter) Dial(address string, certPool *sm2.CertPool) (*grpc.ClientConn, error) {
+//func (da DialerAdapter) Dial(address string, certPool *x509.CertPool) (*grpc.ClientConn, error) {
 	return da.Client.NewConnection(address, comm.CertPoolOverride(certPool))
 }
 

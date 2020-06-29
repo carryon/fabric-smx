@@ -9,7 +9,7 @@ package orderers
 import (
 	"bytes"
 	"crypto/sha256"
-	"crypto/x509"
+	"github.com/tjfoc/gmsm/sm2"
 	"math/rand"
 	"sync"
 
@@ -29,7 +29,8 @@ type ConnectionSource struct {
 
 type Endpoint struct {
 	Address   string
-	CertPool  *x509.CertPool
+	CertPool  *sm2.CertPool
+	//CertPool  *x509.CertPool
 	Refreshed chan struct{}
 }
 
@@ -148,10 +149,12 @@ func (cs *ConnectionSource) Update(globalAddrs []string, orgs map[string]Orderer
 
 	cs.allEndpoints = nil
 
-	globalCertPool := x509.NewCertPool()
+	globalCertPool := sm2.NewCertPool()
+	//globalCertPool := x509.NewCertPool()
 
 	for orgName, org := range orgs {
-		certPool := x509.NewCertPool()
+		certPool := sm2.NewCertPool()
+		//certPool := x509.NewCertPool()
 		for _, rootCert := range org.RootCerts {
 			if hasOrgEndpoints {
 				if err := comm.AddPemToCertPool(rootCert, certPool); err != nil {

@@ -8,14 +8,16 @@ package msp
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"os"
-	"path/filepath"
-
+	"github.com/hyperledger/fabric/bccsp"
+	"github.com/hyperledger/fabric/bccsp/factory"
 	"github.com/hyperledger/fabric/internal/cryptogen/ca"
 	"github.com/hyperledger/fabric/internal/cryptogen/csp"
 	fabricmsp "github.com/hyperledger/fabric/msp"
 	"github.com/pkg/errors"
+	"github.com/tjfoc/gmsm/sm2"
 	"gopkg.in/yaml.v2"
+	"os"
+	"path/filepath"
 )
 
 const (
@@ -70,11 +72,16 @@ func GenerateLocalMSP(
 	keystore := filepath.Join(mspDir, "keystore")
 
 	// generate private key
-	priv, err := csp.GeneratePrivateKey(keystore)
+	//priv, err := csp.GeneratePrivateKey(keystore)
+	priv, _, err := csp.GeneratePrivateKey(keystore)
 	if err != nil {
 		return err
 	}
 
+	sm2PubKey, err := csp.GetSM2PublicKey(priv)
+	if err != nil {
+		return err
+	}
 	// generate X509 certificate using signing CA
 	var ous []string
 	if nodeOUs {
@@ -85,7 +92,7 @@ func GenerateLocalMSP(
 		name,
 		ous,
 		nil,
-		&priv.PublicKey,
+		sm2PubKey,
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
 	)
@@ -98,7 +105,7 @@ func GenerateLocalMSP(
 	// the signing CA certificate goes into cacerts
 	err = x509Export(
 		filepath.Join(mspDir, "cacerts", x509Filename(signCA.Name)),
-		signCA.SignCert,
+		signCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -106,7 +113,7 @@ func GenerateLocalMSP(
 	// the TLS CA certificate goes into tlscacerts
 	err = x509Export(
 		filepath.Join(mspDir, "tlscacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
+		tlsCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -137,7 +144,13 @@ func GenerateLocalMSP(
 	*/
 
 	// generate private key
-	tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
+	//tlsPrivKey, err := csp.GeneratePrivateKey(tlsDir)
+	tlsPrivKey, _, err := csp.GeneratePrivateKey(tlsDir)
+	if err != nil {
+		return err
+	}
+
+	tlsPubKey, err := csp.GetSM2PublicKey(tlsPrivKey)
 	if err != nil {
 		return err
 	}
@@ -148,7 +161,7 @@ func GenerateLocalMSP(
 		name,
 		nil,
 		sans,
-		&tlsPrivKey.PublicKey,
+		tlsPubKey,
 		x509.KeyUsageDigitalSignature|x509.KeyUsageKeyEncipherment,
 		[]x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth,
 			x509.ExtKeyUsageClientAuth},
@@ -156,7 +169,7 @@ func GenerateLocalMSP(
 	if err != nil {
 		return err
 	}
-	err = x509Export(filepath.Join(tlsDir, "ca.crt"), tlsCA.SignCert)
+	err = x509Export(filepath.Join(tlsDir, "ca.crt"), tlsCA.SignSm2Cert)
 	if err != nil {
 		return err
 	}
@@ -195,7 +208,7 @@ func GenerateVerifyingMSP(
 	// the signing CA certificate goes into cacerts
 	err = x509Export(
 		filepath.Join(baseDir, "cacerts", x509Filename(signCA.Name)),
-		signCA.SignCert,
+		signCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -203,7 +216,7 @@ func GenerateVerifyingMSP(
 	// the TLS CA certificate goes into tlscacerts
 	err = x509Export(
 		filepath.Join(baseDir, "tlscacerts", x509Filename(tlsCA.Name)),
-		tlsCA.SignCert,
+		tlsCA.SignSm2Cert,
 	)
 	if err != nil {
 		return err
@@ -229,7 +242,17 @@ func GenerateVerifyingMSP(
 	if err != nil {
 		return errors.WithMessage(err, "failed to create keystore directory")
 	}
-	priv, err := csp.GeneratePrivateKey(ksDir)
+
+
+	//priv, err := csp.GeneratePrivateKey(ksDir)
+	//if err != nil {
+	//	return err
+	//}
+
+	factory.InitFactories(nil)
+	bcsp := factory.GetDefault()
+	priv, err := bcsp.KeyGen(&bccsp.GMSM2KeyGenOpts{Temporary: true})
+	sm2PubKey, err := csp.GetSM2PublicKey(priv)
 	if err != nil {
 		return err
 	}
@@ -238,7 +261,7 @@ func GenerateVerifyingMSP(
 		signCA.Name,
 		nil,
 		nil,
-		&priv.PublicKey,
+		sm2PubKey,
 		x509.KeyUsageDigitalSignature,
 		[]x509.ExtKeyUsage{},
 	)
@@ -277,7 +300,8 @@ func x509Filename(name string) string {
 	return name + "-cert.pem"
 }
 
-func x509Export(path string, cert *x509.Certificate) error {
+func x509Export(path string, cert *sm2.Certificate) error {
+//func x509Export(path string, cert *x509.Certificate) error {
 	return pemExport(path, "CERTIFICATE", cert.Raw)
 }
 

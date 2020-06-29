@@ -8,7 +8,6 @@ package chaincode
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	tls "github.com/tjfoc/gmtls"
 )
 
 // Committer holds the dependencies needed to commit

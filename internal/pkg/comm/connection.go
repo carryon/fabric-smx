@@ -7,14 +7,14 @@ SPDX-License-Identifier: Apache-2.0
 package comm
 
 import (
-	"crypto/tls"
-	"crypto/x509"
-	"sync"
-
 	"github.com/hyperledger/fabric/common/channelconfig"
 	"github.com/hyperledger/fabric/common/flogging"
 	"github.com/hyperledger/fabric/msp"
+	"github.com/tjfoc/gmsm/sm2"
+	tls "github.com/tjfoc/gmtls"
+	"github.com/tjfoc/gmtls/gmcredentials"
 	"google.golang.org/grpc/credentials"
+	"sync"
 )
 
 var commLogger = flogging.MustGetLogger("comm")
@@ -62,7 +62,8 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 		appRootCAs = append(appRootCAs, appRootCA...)
 	}
 
-	certPool := x509.NewCertPool()
+	certPool := sm2.NewCertPool()
+	//certPool := x509.NewCertPool()
 	for _, appRootCA := range appRootCAs {
 		err := AddPemToCertPool(appRootCA, certPool)
 		if err != nil {
@@ -70,7 +71,7 @@ func (cs *CredentialSupport) GetPeerCredentials() credentials.TransportCredentia
 		}
 	}
 
-	return credentials.NewTLS(&tls.Config{
+	return gmcredentials.NewTLS(&tls.Config{
 		Certificates: []tls.Certificate{cs.clientCert},
 		RootCAs:      certPool,
 	})
