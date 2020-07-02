@@ -1,5 +1,3 @@
-// untested sections: 6
-
 package gstruct
 
 import (
@@ -16,21 +14,10 @@ import (
 
 //MatchAllFields succeeds if every field of a struct matches the field matcher associated with
 //it, and every element matcher is matched.
-//    actual := struct{
-//      A int
-//      B []bool
-//      C string
-//    }{
-//      A: 5,
-//      B: []bool{true, false},
-//      C: "foo",
-//    }
-//
-//    Expect(actual).To(MatchAllFields(Fields{
-//      "A": Equal(5),
-//      "B": ConsistOf(true, false),
-//      "C": Equal("foo"),
-//    }))
+//  Expect([]string{"a", "b"}).To(MatchAllFields(gstruct.Fields{
+//      "a": BeEqual("a"),
+//      "b": BeEqual("b"),
+//  })
 func MatchAllFields(fields Fields) types.GomegaMatcher {
 	return &FieldsMatcher{
 		Fields: fields,
@@ -39,26 +26,10 @@ func MatchAllFields(fields Fields) types.GomegaMatcher {
 
 //MatchFields succeeds if each element of a struct matches the field matcher associated with
 //it. It can ignore extra fields and/or missing fields.
-//    actual := struct{
-//      A int
-//      B []bool
-//      C string
-//    }{
-//      A: 5,
-//      B: []bool{true, false},
-//      C: "foo",
-//    }
-//
-//    Expect(actual).To(MatchFields(IgnoreExtras, Fields{
-//      "A": Equal(5),
-//      "B": ConsistOf(true, false),
-//    }))
-//    Expect(actual).To(MatchFields(IgnoreMissing, Fields{
-//      "A": Equal(5),
-//      "B": ConsistOf(true, false),
-//      "C": Equal("foo"),
-//      "D": Equal("extra"),
-//    }))
+//  Expect([]string{"a", "c"}).To(MatchFields(IgnoreMissing|IgnoreExtra, gstruct.Fields{
+//      "a": BeEqual("a")
+//      "b": BeEqual("b"),
+//  })
 func MatchFields(options Options, fields Fields) types.GomegaMatcher {
 	return &FieldsMatcher{
 		Fields:        fields,
@@ -120,7 +91,12 @@ func (m *FieldsMatcher) matchFields(actual interface{}) (errs []error) {
 				return nil
 			}
 
-			field := val.Field(i).Interface()
+			var field interface{}
+			if val.Field(i).IsValid() {
+				field = val.Field(i).Interface()
+			} else {
+				field = reflect.Zero(typ.Field(i).Type)
+			}
 
 			match, err := matcher.Match(field)
 			if err != nil {
