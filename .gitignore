@@ -26,5 +26,3 @@ TESTS*.xml
 .vagrant/
 .vscode
 
-/vendor/
-!/vendor/vendor.json
