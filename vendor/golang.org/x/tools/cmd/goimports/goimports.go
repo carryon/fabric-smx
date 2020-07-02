@@ -10,6 +10,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go/build"
 	"go/scanner"
 	"io"
 	"io/ioutil"
@@ -42,7 +43,11 @@ var (
 		TabIndent: true,
 		Comments:  true,
 		Fragment:  true,
-		Env: &imports.ProcessEnv{},
+		// This environment, and its caches, will be reused for the whole run.
+		Env: &imports.ProcessEnv{
+			GOPATH: build.Default.GOPATH,
+			GOROOT: build.Default.GOROOT,
+		},
 	}
 	exitCode = 0
 )
@@ -151,12 +156,7 @@ func processFile(filename string, in io.Reader, out io.Writer, argType argumentT
 				// filename is "<standard input>"
 				return errors.New("can't use -w on stdin")
 			}
-			// On Windows, we need to re-set the permissions from the file. See golang/go#38225.
-			var perms os.FileMode
-			if fi, err := os.Stat(filename); err == nil {
-				perms = fi.Mode() & os.ModePerm
-			}
-			err = ioutil.WriteFile(filename, res, perms)
+			err = ioutil.WriteFile(filename, res, 0)
 			if err != nil {
 				return err
 			}
@@ -258,7 +258,7 @@ func gofmtMain() {
 
 	if verbose {
 		log.SetFlags(log.LstdFlags | log.Lmicroseconds)
-		options.Env.Logf = log.Printf
+		options.Env.Debug = true
 	}
 	if options.TabWidth < 0 {
 		fmt.Fprintf(os.Stderr, "negative tabwidth %d\n", options.TabWidth)

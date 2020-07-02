@@ -103,9 +103,10 @@ func copyTLSConfig(cfg *tls.Config) *tls.Config {
 		ClientCAs:                cfg.ClientCAs,
 		ClientSessionCache:       cfg.ClientSessionCache,
 		CurvePreferences:         cfg.CurvePreferences,
-		InsecureSkipVerify:       cfg.InsecureSkipVerify, //nolint:gosec
+		InsecureSkipVerify:       cfg.InsecureSkipVerify,
 		MaxVersion:               cfg.MaxVersion,
 		MinVersion:               cfg.MinVersion,
+		NameToCertificate:        cfg.NameToCertificate,
 		NextProtos:               cfg.NextProtos,
 		PreferServerCipherSuites: cfg.PreferServerCipherSuites,
 		Rand:                     cfg.Rand,
